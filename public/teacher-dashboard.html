@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard | MUHSPS</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="images/logo2.png" type="image/png">
+    <style>
+        :root {
+            --brand-dark-blue: #002a80;
+            --brand-blue: #0044cc;
+            --brand-red: #e63946;
+            --brand-green: #2a9d8f;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: #f4f6f9; }
+
+        /* Sidebar */
+        .dashboard-sidebar {
+            background-color: var(--brand-dark-blue);
+            min-height: 100vh;
+            color: white;
+            box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+            position: fixed; top: 0; bottom: 0; left: 0; z-index: 100;
+        }
+        .nav-link {
+            color: rgba(255,255,255,0.7);
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .nav-link:hover, .nav-link.active {
+            background-color: rgba(255,255,255,0.15);
+            color: white;
+            border-left: 4px solid var(--brand-red);
+        }
+        .nav-link i { width: 25px; margin-right: 10px; text-align: center; }
+        
+        main { margin-left: 16.66667%; } /* Sidebar Offset */
+
+        /* Cards */
+        .stat-card { border: none; border-radius: 12px; transition: transform 0.3s; position: relative; overflow: hidden; }
+        .stat-card:hover { transform: translateY(-5px); }
+        .icon-box { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+
+        /* Calendar Widget */
+        .calendar-widget .day { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer; transition: 0.2s; margin: 2px; }
+        .calendar-widget .day:hover { background-color: #eef2ff; color: var(--brand-blue); }
+        .calendar-widget .day.active { background-color: var(--brand-blue); color: white; }
+        .calendar-widget .day-header { font-size: 0.8rem; font-weight: bold; color: #999; text-align: center; margin-bottom: 10px; }
+
+        /* View Switching */
+        .view-section { display: none; animation: fadeIn 0.4s; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="container-fluid">
+        <div class="row">
+            
+            <nav class="col-md-3 col-lg-2 d-md-block dashboard-sidebar collapse show">
+                <div class="pt-4 px-3">
+                    <div class="text-center mb-5">
+                        <div class="bg-white rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width: 60px; height: 60px;">
+                            <i class="fas fa-chalkboard-teacher fa-2x" style="color: var(--brand-dark-blue);"></i>
+                        </div>
+                        <h6 class="fw-bold mb-0">Faculty Portal</h6>
+                        <small class="text-white-50">Prof. Ali Raza Khoso</small>
+                    </div>
+
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" onclick="switchView('dashboard', this)">
+                                <i class="fas fa-th-large"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" onclick="switchView('attendance', this)">
+                                <i class="fas fa-calendar-check"></i> Attendance
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" onclick="switchView('feedback', this)">
+                                <i class="fas fa-file-alt"></i> Feedback Reports
+                            </a>
+                        </li>
+                        <li class="nav-item mt-5">
+                            <a class="nav-link text-danger bg-white bg-opacity-10" href="login.html">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+
+                <div id="view-dashboard" class="view-section active">
+                    
+                    <div class="card bg-primary text-white border-0 shadow-sm mb-4 rounded-4" style="background: linear-gradient(135deg, var(--brand-blue), var(--brand-dark-blue));">
+                        <div class="card-body p-4 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h2 class="fw-bold">Welcome back, Prof. Khoso!</h2>
+                                <p class="mb-0 opacity-75">You have 2 classes scheduled for today.</p>
+                            </div>
+                            <i class="fas fa-book-open fa-4x opacity-25"></i>
+                        </div>
+                    </div>
+
+                    <div class="row g-4 mb-4">
+                        <div class="col-lg-8">
+                            <h5 class="fw-bold text-dark mb-3">Your Classes</h5>
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="card stat-card shadow-sm h-100 border-start border-warning border-4">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between mb-3">
+                                                <div>
+                                                    <h6 class="text-muted text-uppercase small fw-bold">Class 11 - Physics</h6>
+                                                    <h3 class="fw-bold mb-0">42 Students</h3>
+                                                </div>
+                                                <div class="icon-box bg-warning bg-opacity-10 text-warning"><i class="fas fa-atom"></i></div>
+                                            </div>
+                                            <span class="badge bg-light text-dark border">Section A</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card stat-card shadow-sm h-100 border-start border-success border-4">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between mb-3">
+                                                <div>
+                                                    <h6 class="text-muted text-uppercase small fw-bold">Class 12 - Physics</h6>
+                                                    <h3 class="fw-bold mb-0">38 Students</h3>
+                                                </div>
+                                                <div class="icon-box bg-success bg-opacity-10 text-success"><i class="fas fa-atom"></i></div>
+                                            </div>
+                                            <span class="badge bg-light text-dark border">Section B</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-12">
+                                    <div class="card stat-card shadow-sm h-100 bg-white">
+                                        <div class="card-body d-flex align-items-center">
+                                            <div class="icon-box bg-info bg-opacity-10 text-info me-3"><i class="fas fa-award"></i></div>
+                                            <div>
+                                                <h6 class="text-muted mb-0 small fw-bold">Subject Specialization</h6>
+                                                <h5 class="fw-bold mb-0">Physics</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h5 class="fw-bold text-dark mt-4 mb-3">Top Performers (Term 1)</h5>
+                            <div class="card border-0 shadow-sm overflow-hidden rounded-4">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="bg-light">
+                                            <tr>
+                                                <th class="ps-4">Rank</th>
+                                                <th>Student Name</th>
+                                                <th>Class</th>
+                                                <th>Score</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="ps-4"><span class="badge bg-warning text-dark rounded-circle">1</span></td>
+                                                <td class="fw-bold">Ahmed Khan</td>
+                                                <td>Class 12</td>
+                                                <td class="text-success fw-bold">98%</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="ps-4"><span class="badge bg-secondary text-white rounded-circle">2</span></td>
+                                                <td class="fw-bold">Fatima Ali</td>
+                                                <td>Class 11</td>
+                                                <td class="text-success fw-bold">96%</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="ps-4"><span class="badge bg-danger text-white rounded-circle" style="background:#cd7f32 !important">3</span></td>
+                                                <td class="fw-bold">Bilal Sheikh</td>
+                                                <td>Class 12</td>
+                                                <td class="text-success fw-bold">94%</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white py-3">
+                                    <h6 class="fw-bold mb-0">Attendance Calendar</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <button class="btn btn-sm btn-light"><i class="fas fa-chevron-left"></i></button>
+                                        <span class="fw-bold">January 2026</span>
+                                        <button class="btn btn-sm btn-light"><i class="fas fa-chevron-right"></i></button>
+                                    </div>
+                                    <div class="calendar-widget">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <div class="day-header">M</div><div class="day-header">T</div><div class="day-header">W</div><div class="day-header">T</div><div class="day-header">F</div><div class="day-header">S</div><div class="day-header">S</div>
+                                        </div>
+                                        <div class="row g-0">
+                                            <div class="col"><div class="day text-muted">29</div></div>
+                                            <div class="col"><div class="day text-muted">30</div></div>
+                                            <div class="col"><div class="day" onclick="goToAttendance('2026-01-01')">1</div></div>
+                                            <div class="col"><div class="day" onclick="goToAttendance('2026-01-02')">2</div></div>
+                                            <div class="col"><div class="day" onclick="goToAttendance('2026-01-03')">3</div></div>
+                                            <div class="col"><div class="day" onclick="goToAttendance('2026-01-04')">4</div></div>
+                                            <div class="col"><div class="day" onclick="goToAttendance('2026-01-05')">5</div></div>
+                                        </div>
+                                        <div class="row g-0">
+                                            <div class="col"><div class="day" onclick="goToAttendance('2026-01-06')">6</div></div>
+                                            <div class="col"><div class="day" onclick="goToAttendance('2026-01-07')">7</div></div>
+                                            <div class="col"><div class="day active" onclick="goToAttendance('2026-01-08')">8</div></div>
+                                            <div class="col"><div class="day" onclick="goToAttendance('2026-01-09')">9</div></div>
+                                            <div class="col"><div class="day" onclick="goToAttendance('2026-01-10')">10</div></div>
+                                            <div class="col"><div class="day" onclick="goToAttendance('2026-01-11')">11</div></div>
+                                            <div class="col"><div class="day" onclick="goToAttendance('2026-01-12')">12</div></div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-4 p-3 bg-light rounded small">
+                                        <p class="mb-1"><i class="fas fa-info-circle text-primary me-2"></i> <strong>Tip:</strong> Click any date to open the attendance sheet for that day.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-attendance" class="view-section">
+                    <h3 class="fw-bold text-dark mb-4">Mark Attendance</h3>
+                    
+                    <div class="card border-0 shadow-sm rounded-4 mb-4">
+                        <div class="card-body p-4">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Date</label>
+                                    <input type="date" id="attendanceDate" class="form-control" value="2026-01-08">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Select Class</label>
+                                    <select class="form-select" id="classSelect" onchange="generateStudentList()">
+                                        <option value="11">Class 11 - Section A</option>
+                                        <option value="12">Class 12 - Section B</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Subject</label>
+                                    <input type="text" class="form-control bg-light" value="Physics" readonly>
+                                </div>
+                                <div class="col-md-3">
+                                    <button class="btn btn-primary w-100" onclick="generateStudentList()"><i class="fas fa-list me-2"></i>Load List</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0">Student List</h6>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-success" onclick="markAll('P')">Mark All Present</button>
+                                <button class="btn btn-outline-danger" onclick="markAll('A')">Mark All Absent</button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0 text-center">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th>Roll No</th>
+                                        <th class="text-start">Student Name</th>
+                                        <th>Status (Present / Absent)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendanceTableBody">
+                                    </tbody>
+                            </table>
+                        </div>
+                        <div class="card-footer bg-white p-3 text-end">
+                            <button class="btn btn-success px-5 rounded-pill fw-bold" onclick="alert('Attendance Saved Successfully!')">Submit Attendance</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-feedback" class="view-section">
+                    <h3 class="fw-bold text-dark mb-4">Annual Feedback Report</h3>
+                    
+                    <div class="row justify-content-center">
+                        <div class="col-lg-8">
+                            <div class="card border-0 shadow-sm rounded-4">
+                                <div class="card-header bg-primary text-white p-4">
+                                    <h5 class="mb-0 fw-bold">Submit Student Performance Report</h5>
+                                </div>
+                                <div class="card-body p-5">
+                                    <form onsubmit="event.preventDefault(); alert('Report Submitted!');">
+                                        
+                                        <div class="row g-3 mb-4">
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold">Select Class</label>
+                                                <select class="form-select">
+                                                    <option>Class 11</option>
+                                                    <option>Class 12</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold">Select Student</label>
+                                                <select class="form-select">
+                                                    <option>Ahmed Khan</option>
+                                                    <option>Fatima Ali</option>
+                                                    <option>Bilal Sheikh</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <hr class="my-4">
+
+                                        <h6 class="fw-bold text-primary mb-3">Performance Metrics</h6>
+                                        
+                                        <div class="mb-4">
+                                            <label class="form-label d-block fw-bold">1. Was the student punctual in classes?</label>
+                                            <div class="btn-group w-100" role="group">
+                                                <input type="radio" class="btn-check" name="q1" id="q1a" autocomplete="off"><label class="btn btn-outline-success" for="q1a">Always</label>
+                                                <input type="radio" class="btn-check" name="q1" id="q1b" autocomplete="off"><label class="btn btn-outline-warning" for="q1b">Sometimes</label>
+                                                <input type="radio" class="btn-check" name="q1" id="q1c" autocomplete="off"><label class="btn btn-outline-danger" for="q1c">Rarely</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-4">
+                                            <label class="form-label d-block fw-bold">2. Was the student attentive during lectures?</label>
+                                            <div class="btn-group w-100" role="group">
+                                                <input type="radio" class="btn-check" name="q2" id="q2a" autocomplete="off"><label class="btn btn-outline-success" for="q2a">Very Attentive</label>
+                                                <input type="radio" class="btn-check" name="q2" id="q2b" autocomplete="off"><label class="btn btn-outline-warning" for="q2b">Average</label>
+                                                <input type="radio" class="btn-check" name="q2" id="q2c" autocomplete="off"><label class="btn btn-outline-danger" for="q2c">Distracted</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-4">
+                                            <label class="form-label d-block fw-bold">3. Did the student follow school ethics & rules?</label>
+                                            <div class="btn-group w-100" role="group">
+                                                <input type="radio" class="btn-check" name="q3" id="q3a" autocomplete="off"><label class="btn btn-outline-success" for="q3a">Yes, Exemplary</label>
+                                                <input type="radio" class="btn-check" name="q3" id="q3b" autocomplete="off"><label class="btn btn-outline-danger" for="q3b">Needs Improvement</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-4">
+                                            <label class="form-label fw-bold">Detailed Remarks</label>
+                                            <textarea class="form-control" rows="4" placeholder="Write detailed feedback about academic performance and behavior..."></textarea>
+                                        </div>
+
+                                        <button class="btn btn-primary w-100 rounded-pill py-2 fw-bold">Submit Report</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // --- 1. VIEW SWITCHING ---
+        function switchView(viewName, navElement) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${viewName}`).classList.add('active');
+            
+            if(navElement) {
+                document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+                navElement.classList.add('active');
+            }
+        }
+
+        // --- 2. CALENDAR TO ATTENDANCE LINK ---
+        function goToAttendance(date) {
+            // Switch tab
+            switchView('attendance');
+            // Highlight sidebar
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+            document.querySelector("a[onclick*='attendance']").classList.add('active');
+            // Set Date
+            document.getElementById('attendanceDate').value = date;
+            // Load list
+            generateStudentList();
+        }
+
+        // --- 3. ATTENDANCE LOGIC ---
+        function generateStudentList() {
+            const cls = document.getElementById('classSelect').value;
+            const tbody = document.getElementById('attendanceTableBody');
+            tbody.innerHTML = '';
+
+            // Mock Data Generator
+            const students = [
+                "Ahmed Khan", "Bilal Sheikh", "Fatima Ali", "Zainab Bibi", 
+                "Muhammad Umer", "Sara Khan", "Ali Raza", "Usman Ghani"
+            ];
+
+            students.forEach((name, index) => {
+                const rollNo = `2026-${cls}-${index + 1}`;
+                const row = `
+                    <tr>
+                        <td class="text-muted">${rollNo}</td>
+                        <td class="text-start fw-bold">${name}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <input type="radio" class="btn-check" name="status${index}" id="p${index}" autocomplete="off" checked>
+                                <label class="btn btn-outline-success btn-sm" for="p${index}">Present</label>
+
+                                <input type="radio" class="btn-check" name="status${index}" id="a${index}" autocomplete="off">
+                                <label class="btn btn-outline-danger btn-sm" for="a${index}">Absent</label>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function markAll(status) {
+            const rows = document.getElementById('attendanceTableBody').rows;
+            for(let i=0; i<rows.length; i++) {
+                if(status === 'P') document.getElementById(`p${i}`).checked = true;
+                else document.getElementById(`a${i}`).checked = true;
+            }
+        }
+
+        // Init
+        generateStudentList(); // Load default list
+    </script>
+</body>
+</html>

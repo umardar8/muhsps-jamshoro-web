@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard | MUHSPS</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="images/logo2.png" type="image/png">
+    <style>
+        :root {
+            --brand-dark-blue: #002a80;
+            --brand-blue: #0044cc;
+            --brand-red: #e63946;
+            --brand-green: #2a9d8f;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: #f4f6f9; }
+
+        /* --- PRE-ADMISSION (TRACKER) STYLES --- */
+        .tracker-container { max-width: 800px; margin: 50px auto; }
+        .step-circle { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; background: #e9ecef; color: #999; margin: 0 auto; transition: 0.3s; }
+        .step-active .step-circle { background: var(--brand-blue); color: white; box-shadow: 0 0 0 5px rgba(0,68,204,0.2); }
+        .step-label { font-size: 0.85rem; margin-top: 10px; color: #666; font-weight: 600; }
+        
+        /* --- POST-ADMISSION (DASHBOARD) STYLES --- */
+        .dashboard-sidebar {
+            background-color: var(--brand-dark-blue);
+            min-height: 100vh;
+            color: white;
+            box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+            position: fixed; top: 0; bottom: 0; left: 0; z-index: 100;
+        }
+        .nav-link {
+            color: rgba(255,255,255,0.7);
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .nav-link:hover, .nav-link.active {
+            background-color: rgba(255,255,255,0.15);
+            color: white;
+            border-left: 4px solid var(--brand-red);
+        }
+        .nav-link i { width: 25px; margin-right: 10px; text-align: center; }
+        
+        main { margin-left: 16.66667%; } /* Sidebar Offset */
+        
+        /* View Sections */
+        .view-section { display: none; animation: fadeIn 0.4s; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Cards */
+        .info-card { border: none; border-radius: 12px; transition: 0.3s; position: relative; overflow: hidden; }
+        .info-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        
+        /* Schedule Table */
+        .schedule-table th { background-color: var(--brand-dark-blue); color: white; font-weight: 400; }
+        .schedule-table td { vertical-align: middle; padding: 15px; }
+        .subject-badge { background-color: #eef2ff; color: var(--brand-blue); padding: 5px 10px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <div id="admission-tracker-view" style="display: none;">
+        <nav class="navbar navbar-dark bg-dark shadow-sm">
+            <div class="container">
+                <span class="navbar-brand fw-bold">MUHSPS Admission Portal</span>
+                <button onclick="logout()" class="btn btn-outline-light btn-sm rounded-pill px-3">Logout</button>
+            </div>
+        </nav>
+
+        <div class="container tracker-container">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-primary text-white p-4 text-center">
+                    <h3 class="mb-0 fw-bold">Application Status</h3>
+                    <p class="mb-0 opacity-75">Track your admission progress</p>
+                </div>
+                <div class="card-body p-5">
+                    
+                    <div class="text-center mb-5">
+                        <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-user fa-2x text-primary"></i>
+                        </div>
+                        <h4 id="trackerName" class="fw-bold">Student Name</h4>
+                        <span id="trackerClass" class="badge bg-secondary">Class</span>
+                    </div>
+
+                    <div id="status-content">
+                        <div id="msg-pending" class="text-center py-3" style="display: none;">
+                            <div class="alert alert-warning border-warning d-inline-block px-5">
+                                <i class="fas fa-clock fa-2x mb-3 d-block"></i>
+                                <strong>Under Review</strong>
+                                <p class="mb-0">Admin is verifying your documents.</p>
+                            </div>
+                        </div>
+
+                        <div id="msg-objected" class="text-center py-3" style="display: none;">
+                            <div class="alert alert-danger border-danger shadow-sm text-start">
+                                <h5 class="fw-bold"><i class="fas fa-exclamation-triangle me-2"></i>Objection Raised</h5>
+                                <p>Please correct the following issue:</p>
+                                <div class="bg-white p-3 rounded border border-danger text-danger fw-bold" id="objection-text"></div>
+                            </div>
+                        </div>
+
+                        <div id="msg-verified" style="display: none;">
+                            <div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>Documents Verified! Please pay the fee.</div>
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="card bg-light border-0 h-100 p-3 text-center">
+                                        <h6>Step 1</h6>
+                                        <a id="btnDownloadChallan" href="#" class="btn btn-primary w-100"><i class="fas fa-download me-2"></i>Download Challan</a>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card bg-light border-0 h-100 p-3">
+                                        <h6 class="text-center">Step 2: Upload Receipt</h6>
+                                        <form id="uploadReceiptForm">
+                                            <input type="file" class="form-control mb-2" id="receiptFile" required>
+                                            <button class="btn btn-success w-100">Upload</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="msg-feepaid" class="text-center py-3" style="display: none;">
+                            <div class="alert alert-info">
+                                <i class="fas fa-hourglass-half me-2"></i>
+                                <strong>Payment Submitted.</strong> Waiting for final confirmation.
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="main-dashboard-view" style="display: none;">
+        <div class="container-fluid">
+            <div class="row">
+                
+                <nav class="col-md-3 col-lg-2 d-md-block dashboard-sidebar collapse show">
+                    <div class="pt-4 px-3">
+                        <div class="text-center mb-5">
+                            <div class="bg-white rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width: 60px; height: 60px;">
+                                <i class="fas fa-user-graduate fa-2x" style="color: var(--brand-dark-blue);"></i>
+                            </div>
+                            <h6 class="fw-bold mb-0" id="dashName">Student</h6>
+                            <small class="text-white-50" id="dashGR">GR: ---</small>
+                        </div>
+
+                        <ul class="nav flex-column">
+                            <li class="nav-item"><a class="nav-link active" onclick="switchView('overview', this)"><i class="fas fa-chart-pie"></i> Overview</a></li>
+                            <li class="nav-item"><a class="nav-link" onclick="switchView('schedule', this)"><i class="fas fa-calendar-alt"></i> Schedule</a></li>
+                            <li class="nav-item"><a class="nav-link" onclick="switchView('courses', this)"><i class="fas fa-book"></i> Courses</a></li>
+                            <li class="nav-item"><a class="nav-link" onclick="switchView('attendance', this)"><i class="fas fa-user-check"></i> Attendance</a></li>
+                            <li class="nav-item"><a class="nav-link" onclick="switchView('feedback', this)"><i class="fas fa-comment-alt"></i> Feedback</a></li>
+                            <li class="nav-item mt-5"><a class="nav-link text-danger bg-white bg-opacity-10" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                        </ul>
+                    </div>
+                </nav>
+
+                <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+                    
+                    <div id="view-overview" class="view-section active">
+                        <h3 class="fw-bold text-dark mb-4">Dashboard Overview</h3>
+                        
+                        <div class="row g-4 mb-5">
+                            <div class="col-md-4">
+                                <div class="card info-card bg-white shadow-sm h-100 border-start border-primary border-4">
+                                    <div class="card-body p-4">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="bg-primary bg-opacity-10 p-2 rounded me-3 text-primary"><i class="fas fa-calendar-check fa-lg"></i></div>
+                                            <h6 class="text-muted mb-0">Days Present</h6>
+                                        </div>
+                                        <h2 class="fw-bold mb-0">85%</h2>
+                                        <small class="text-success"><i class="fas fa-arrow-up"></i> Excellent</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card info-card bg-white shadow-sm h-100 border-start border-warning border-4">
+                                    <div class="card-body p-4">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="bg-warning bg-opacity-10 p-2 rounded me-3 text-warning"><i class="fas fa-layer-group fa-lg"></i></div>
+                                            <h6 class="text-muted mb-0">Current Class</h6>
+                                        </div>
+                                        <h2 class="fw-bold mb-0" id="dashClassCard">...</h2>
+                                        <small class="text-muted">Section A</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card info-card bg-white shadow-sm h-100 border-start border-success border-4">
+                                    <div class="card-body p-4">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="bg-success bg-opacity-10 p-2 rounded me-3 text-success"><i class="fas fa-atom fa-lg"></i></div>
+                                            <h6 class="text-muted mb-0">Group</h6>
+                                        </div>
+                                        <h2 class="fw-bold mb-0">Pre-Engineering</h2>
+                                        <small class="text-muted">Science Faculty</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card border-0 shadow-sm rounded-4">
+                            <div class="card-header bg-white py-3 border-bottom">
+                                <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-bullhorn text-danger me-2"></i>Latest Announcements</h5>
+                            </div>
+                            <div class="list-group list-group-flush">
+                                <div class="list-group-item p-4">
+                                    <div class="d-flex justify-content-between">
+                                        <h6 class="fw-bold text-primary">Winter Vacations Announced</h6>
+                                        <small class="text-muted">Jan 20, 2026</small>
+                                    </div>
+                                    <p class="mb-0 text-muted small">The school will remain closed from Jan 25th to Feb 5th for winter break. Administrative office will remain open.</p>
+                                </div>
+                                <div class="list-group-item p-4">
+                                    <div class="d-flex justify-content-between">
+                                        <h6 class="fw-bold text-danger">Final Examination Schedule</h6>
+                                        <small class="text-muted">Jan 15, 2026</small>
+                                    </div>
+                                    <p class="mb-0 text-muted small">Date sheets for final exams have been uploaded. Please check the 'Schedule' tab for details.</p>
+                                </div>
+                                <div class="list-group-item p-4">
+                                    <div class="d-flex justify-content-between">
+                                        <h6 class="fw-bold text-dark">Sports Week Registration</h6>
+                                        <small class="text-muted">Jan 10, 2026</small>
+                                    </div>
+                                    <p class="mb-0 text-muted small">Students interested in Cricket and Football tournaments should register with the sports incharge by Friday.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="view-schedule" class="view-section">
+                        <h3 class="fw-bold text-dark mb-4">Weekly Timetable</h3>
+                        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                            <div class="table-responsive">
+                                <table class="table table-bordered mb-0 schedule-table text-center">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 15%;">Time</th>
+                                            <th>Monday</th>
+                                            <th>Tuesday</th>
+                                            <th>Wednesday</th>
+                                            <th>Thursday</th>
+                                            <th>Friday</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="fw-bold bg-light">08:00 - 09:00</td>
+                                            <td><span class="subject-badge">Mathematics</span></td>
+                                            <td><span class="subject-badge">Physics</span></td>
+                                            <td><span class="subject-badge">Mathematics</span></td>
+                                            <td><span class="subject-badge">Physics</span></td>
+                                            <td><span class="subject-badge">Islamiat</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="fw-bold bg-light">09:00 - 10:00</td>
+                                            <td><span class="subject-badge">Physics</span></td>
+                                            <td><span class="subject-badge">Chemistry</span></td>
+                                            <td><span class="subject-badge">English</span></td>
+                                            <td><span class="subject-badge">Chemistry</span></td>
+                                            <td><span class="subject-badge">Physics</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="fw-bold bg-light">10:00 - 10:30</td>
+                                            <td colspan="5" class="bg-light text-muted fw-bold">B R E A K</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="fw-bold bg-light">10:30 - 11:30</td>
+                                            <td><span class="subject-badge">Chemistry</span></td>
+                                            <td><span class="subject-badge">English</span></td>
+                                            <td><span class="subject-badge">Urdu</span></td>
+                                            <td><span class="subject-badge">Mathematics</span></td>
+                                            <td><span class="subject-badge">Chemistry</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="fw-bold bg-light">11:30 - 12:30</td>
+                                            <td><span class="subject-badge">English</span></td>
+                                            <td><span class="subject-badge">Urdu</span></td>
+                                            <td><span class="subject-badge">Pak Studies</span></td>
+                                            <td><span class="subject-badge">English</span></td>
+                                            <td><span class="subject-badge">Sports</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="view-courses" class="view-section">
+                        <h3 class="fw-bold text-dark mb-4">My Subjects</h3>
+                        <div class="row g-4">
+                            <div class="col-md-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body p-4">
+                                        <div class="d-flex justify-content-between mb-3">
+                                            <div class="icon-box bg-primary bg-opacity-10 text-primary p-3 rounded"><i class="fas fa-calculator fa-lg"></i></div>
+                                            <span class="badge bg-light text-dark border align-self-start">4 Credits</span>
+                                        </div>
+                                        <h5 class="fw-bold">Mathematics</h5>
+                                        <p class="text-muted small">Instructor: <strong class="text-dark">Mr. Kashif Syed</strong></p>
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar bg-primary" style="width: 75%"></div>
+                                        </div>
+                                        <small class="text-muted mt-2 d-block">75% Syllabus Covered</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body p-4">
+                                        <div class="d-flex justify-content-between mb-3">
+                                            <div class="icon-box bg-warning bg-opacity-10 text-warning p-3 rounded"><i class="fas fa-flask fa-lg"></i></div>
+                                            <span class="badge bg-light text-dark border align-self-start">3 Credits</span>
+                                        </div>
+                                        <h5 class="fw-bold">Chemistry</h5>
+                                        <p class="text-muted small">Instructor: <strong class="text-dark">Ms. Nusrat</strong></p>
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar bg-warning" style="width: 60%"></div>
+                                        </div>
+                                        <small class="text-muted mt-2 d-block">60% Syllabus Covered</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body p-4">
+                                        <div class="d-flex justify-content-between mb-3">
+                                            <div class="icon-box bg-success bg-opacity-10 text-success p-3 rounded"><i class="fas fa-atom fa-lg"></i></div>
+                                            <span class="badge bg-light text-dark border align-self-start">4 Credits</span>
+                                        </div>
+                                        <h5 class="fw-bold">Physics</h5>
+                                        <p class="text-muted small">Instructor: <strong class="text-dark">Mr. Ali Hingorjo</strong></p>
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar bg-success" style="width: 85%"></div>
+                                        </div>
+                                        <small class="text-muted mt-2 d-block">85% Syllabus Covered</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row g-4 my-2">
+                            <div class="col-md-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body p-4">
+                                        <div class="d-flex justify-content-between mb-3">
+                                            <div class="icon-box bg-primary bg-opacity-10 text-primary p-3 rounded"><i class="fas fa-book fa-lg"></i></div>
+                                            <span class="badge bg-light text-dark border align-self-start">4 Credits</span>
+                                        </div>
+                                        <h5 class="fw-bold">English</h5>
+                                        <p class="text-muted small">Instructor: <strong class="text-dark">Prof. Ali Raza</strong></p>
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar bg-primary" style="width: 75%"></div>
+                                        </div>
+                                        <small class="text-muted mt-2 d-block">75% Syllabus Covered</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body p-4">
+                                        <div class="d-flex justify-content-between mb-3">
+                                            <div class="icon-box bg-warning bg-opacity-10 text-warning p-3 rounded"><i class="fas fa-language fa-lg"></i></div>
+                                            <span class="badge bg-light text-dark border align-self-start">3 Credits</span>
+                                        </div>
+                                        <h5 class="fw-bold">Urdu</h5>
+                                        <p class="text-muted small">Instructor: <strong class="text-dark">Ms. Ayesha</strong></p>
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar bg-warning" style="width: 60%"></div>
+                                        </div>
+                                        <small class="text-muted mt-2 d-block">60% Syllabus Covered</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body p-4">
+                                        <div class="d-flex justify-content-between mb-3">
+                                            <div class="icon-box bg-success bg-opacity-10 text-success p-3 rounded"><i class="fas fa-language fa-lg"></i></div>
+                                            <span class="badge bg-light text-dark border align-self-start">4 Credits</span>
+                                        </div>
+                                        <h5 class="fw-bold">Sindhi</h5>
+                                        <p class="text-muted small">Instructor: <strong class="text-dark">Mr. Kamran</strong></p>
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar bg-success" style="width: 85%"></div>
+                                        </div>
+                                        <small class="text-muted mt-2 d-block">85% Syllabus Covered</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="view-attendance" class="view-section">
+                        <h3 class="fw-bold text-dark mb-4">Attendance Record</h3>
+                        <div class="row mb-4">
+                            <div class="col-lg-8">
+                                <div class="card border-0 shadow-sm p-4 h-100">
+                                    <h5 class="fw-bold mb-4">Yearly Overview</h5>
+                                    <div class="d-flex align-items-center mb-3">
+                                        <span class="fw-bold w-25">Presents</span>
+                                        <div class="progress flex-grow-1" style="height: 10px;">
+                                            <div class="progress-bar bg-success" style="width: 85%"></div>
+                                        </div>
+                                        <span class="ms-3 fw-bold">85%</span>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-3">
+                                        <span class="fw-bold w-25">Absents</span>
+                                        <div class="progress flex-grow-1" style="height: 10px;">
+                                            <div class="progress-bar bg-danger" style="width: 10%"></div>
+                                        </div>
+                                        <span class="ms-3 fw-bold">10%</span>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <span class="fw-bold w-25">Leaves</span>
+                                        <div class="progress flex-grow-1" style="height: 10px;">
+                                            <div class="progress-bar bg-warning" style="width: 5%"></div>
+                                        </div>
+                                        <span class="ms-3 fw-bold">5%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <div class="card border-0 shadow-sm p-4 h-100 bg-primary text-white">
+                                    <h5 class="fw-bold mb-4">Summary</h5>
+                                    <div class="d-flex justify-content-between border-bottom border-white border-opacity-25 pb-3 mb-3">
+                                        <span>Total Working Days</span>
+                                        <span class="fw-bold">120</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between border-bottom border-white border-opacity-25 pb-3 mb-3">
+                                        <span>Days Present</span>
+                                        <span class="fw-bold">102</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>Leaves Taken</span>
+                                        <span class="fw-bold">6</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="view-feedback" class="view-section">
+                        <h3 class="fw-bold text-dark mb-4">Teacher's Feedback</h3>
+                        <div class="card border-0 shadow-sm p-5">
+                            <div class="d-flex align-items-start">
+                                <img src="images/sadia.jpg" class="rounded-circle me-4" width="80" height="80">
+                                <div>
+                                    <h5 class="fw-bold text-primary">Ms. Sadia (Class Incharge)</h5>
+                                    <p class="text-muted mb-3">Annual Performance Review - 2025</p>
+                                    <div class="bg-light p-4 rounded border-start border-4 border-success fst-italic">
+                                        "The student shows excellent aptitude in scientific subjects, particularly Physics. Attendance has been consistent throughout the term. However, more attention is required in language subjects, specifically Urdu handwriting. Behavior in class is exemplary and participative."
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const studentId = localStorage.getItem('studentId');
+        if(!studentId) window.location.href = 'login.html';
+
+        async function init() {
+            try {
+                const res = await fetch(`/api/student/${studentId}`);
+                const data = await res.json();
+
+                // 1. FILL TRACKER INFO
+                document.getElementById('trackerName').innerText = data.fullName;
+                document.getElementById('trackerClass').innerText = data.classApplying;
+
+                // 2. LOGIC SWITCH
+                if (data.status === 'Confirmed') {
+                    // Show Dashboard
+                    document.getElementById('admission-tracker-view').style.display = 'none';
+                    document.getElementById('main-dashboard-view').style.display = 'block';
+                    
+                    // Fill Dashboard Header Info
+                    document.getElementById('dashName').innerText = data.fullName;
+                    document.getElementById('dashGR').innerText = "GR: " + data.grNumber;
+                    document.getElementById('dashClassCard').innerText = data.classApplying;
+                } 
+                else {
+                    // Show Tracker
+                    document.getElementById('admission-tracker-view').style.display = 'block';
+                    document.getElementById('main-dashboard-view').style.display = 'none';
+                    
+                    // Handle Tracker Logic
+                    document.getElementById('msg-pending').style.display = 'none';
+                    document.getElementById('msg-verified').style.display = 'none';
+                    document.getElementById('msg-feepaid').style.display = 'none';
+                    document.getElementById('msg-objected').style.display = 'none';
+
+                    if (data.status === 'Pending') document.getElementById('msg-pending').style.display = 'block';
+                    else if (data.status === 'Verified') {
+                        document.getElementById('msg-verified').style.display = 'block';
+                        document.getElementById('btnDownloadChallan').href = '/' + data.feeChallanPath;
+                    }
+                    else if (data.status === 'FeePaid') document.getElementById('msg-feepaid').style.display = 'block';
+                    else if (data.status === 'Objected') {
+                        document.getElementById('msg-objected').style.display = 'block';
+                        document.getElementById('objection-text').innerText = data.objectionReason;
+                    }
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // View Switching
+        function switchView(viewName, navElement) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${viewName}`).classList.add('active');
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+            navElement.classList.add('active');
+        }
+
+        // Receipt Upload
+        document.getElementById('uploadReceiptForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('studentId', studentId);
+            formData.append('paidChallan', document.getElementById('receiptFile').files[0]);
+            
+            const res = await fetch('/api/student/pay', { method: 'POST', body: formData });
+            if(res.ok) { alert("Receipt Uploaded!"); location.reload(); }
+        });
+
+        function logout() {
+            localStorage.removeItem('studentId');
+            window.location.href = 'login.html';
+        }
+
+        init();
+    </script>
+</body>
+</html>
